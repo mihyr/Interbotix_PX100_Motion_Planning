@@ -1,0 +1,61 @@
+#!/usr/bin/env python
+"""
+
+**Info**: This *mover* node publishes 
+
+**Publishers**:
+    visualization_marker - publish marker of different shape and color based on their current location
+                            (shape and color changes when x coordinate sign alters. Color change is set to random)
+
+**Subscriber:
+    point - Subscribe to points topic (x,y coordinate data) published by arm_traj node
+
+**Parameters**:
+    total_time = Time required to complete one loop of trajectory
+    Pub_Frequency - ROS Publishing freq Rate
+    
+**Note**:
+
+"""
+
+import rospy
+
+
+#Define frequency rate
+#freq = rospy.get_param("/F")
+freq = 60
+
+
+#Define Callback for point subscriber
+#def callback(data):
+#    global x_coor, y_coor
+#    x_coor = data.x
+#    y_coor = data.y
+
+
+def main():
+
+    #initialize node
+    rospy.init_node('mover')
+
+    #logerr msg to check if node is running
+    rospy.logerr("This is just a check for arm_marker node, ignore me")
+
+    #define ros frequency
+    hz = rospy.Rate(freq)
+
+    
+    while not rospy.is_shutdown():
+        
+
+        #Log coordinates (received from node arm_traj through topic point)
+        rospy.loginfo("test")
+
+        #go to sleep!
+        hz.sleep()
+
+if __name__ == "__main__":
+    try:
+        main()
+    except rospy.ROSInterruptException:
+        pass 

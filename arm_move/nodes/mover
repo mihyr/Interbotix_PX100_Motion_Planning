@@ -8,21 +8,18 @@ import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
 from geometry_msgs.msg import Quaternion, Vector3
+from moveit_msgs.msg import MoveItErrorCodes
 from math import pi, dist, fabs, cos
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
 from std_srvs.srv import Empty, EmptyResponse
+from arm_move.srv import reset, step
 
 #Define frequency rate
 #freq = rospy.get_param("/F")
 freq = 200
+waypoints = []
 
-
-#Define Callback for point subscriber
-#def callback(data):
-#    global x_coor, y_coor
-#    x_coor = data.x
-#    y_coor = data.y
 
 
 def main():
@@ -42,6 +39,8 @@ def main():
 
     group_name = "interbotix_arm"
     move_group = moveit_commander.MoveGroupCommander(group_name)
+    gripper_name = "interbotix_gripper"
+    gripper_group = moveit_commander.MoveGroupCommander(gripper_name)
 
     #logerr msg to check if node is running
     rospy.logerr("This is just a check for mover node, ignore me")
@@ -52,6 +51,68 @@ def main():
 
     #Define pause_callback and resume_callback for pause and resume services
     def reset_callback(msg):
+        global waypoints
+        #add realsense_box
+        box_pose = geometry_msgs.msg.PoseStamped()
+        box_pose.header.frame_id = "world"
+        #box_pose.pose.position = Vector3(0.2,0,0.01)
+        #box_pose.pose.orientation = Quaternion(0,0,1,1)
+        box_pose.pose.position = msg.box_position
+        box_pose.pose.orientation = msg.box_orientation
+        box_name = "realsense_box"
+        scene.add_box(box_name, box_pose, size=(0.14, 0.09, 0.05))
+
+        #move robot to pre-defined "Home" position
+        move_group.set_named_target(msg.Goal_Pose)
+        move_group.go()
+        move_group.stop()
+        move_group.clear_pose_targets()
+
+        #clear waypoints
+        if msg.clear_waypoints ==True:
+            waypoints = []
+            return {'response': "Home Position Set, waypoints cleared"}
+        else:
+            return {'response': "Home Position Set, waypoints not cleared"}
+
+    def step_callback(msg):
+        global waypoints
+          
+        pose_goal = geometry_msgs.msg.Pose()
+        pose_goal.position = msg.goal_position
+        pose_goal.orientation = msg.goal_orientation
+        move_group.set_pose_target(pose_goal)
+        (success_status, trajectory_message, planning_time, error) = move_group.plan()
+
+        move_group.execute(trajectory_message, wait=True)
+        move_group.stop()
+        move_group.clear_pose_targets()
+        move_group.go()
+        move_group.stop()
+        move_group.clear_pose_targets()
+        print(error)
+        if success_status == 1:
+            waypoints.append(pose_goal)
+
+        gripper_group.set_named_target(msg.Gripper_state)
+        gripper_group.go()
+        gripper_group.stop()
+        gripper_group.clear_pose_targets()
+
+        return {'response': str(planning_time), 'error':error }
+
+    def follow_callback(msg):
+
+        return EmptyResponse()
+
+    #init pause and resume services
+    reset_srv = rospy.Service("reset", reset, reset_callback)
+    step_srv = rospy.Service("step", step, step_callback)
+    follow_srv = rospy.Service("follow", Empty, follow_callback)
+
+    #iteration loop
+    while not rospy.is_shutdown():
+
         #add table
         box_pose = geometry_msgs.msg.PoseStamped()
         box_pose.header.frame_id = "world"
@@ -60,44 +121,9 @@ def main():
         box_name = "table"
         scene.add_box(box_name, box_pose, size=(0.75, 0.75, 0.02))
 
-        #add realsense_box
-        box_pose = geometry_msgs.msg.PoseStamped()
-        box_pose.header.frame_id = "world"
-        box_pose.pose.position = Vector3(0.2,0,0.01)
-        box_pose.pose.orientation = Quaternion(0,0,1,1)
-        box_name = "realsense_box"
-        scene.add_box(box_name, box_pose, size=(0.14, 0.09, 0.05))
-
-        #move robot to pre-defined "Home" position
-        move_group.set_named_target("Home")
-        move_group.go()
-        move_group.stop()
-        #clear waypoints
-        move_group.clear_pose_targets()
-        
-        return EmptyResponse()
-
-    def follow_callback(msg):
-
-        return EmptyResponse()
-
-    #init pause and resume services
-    reset_srv = rospy.Service("reset", Empty, reset_callback)
-    follow_srv = rospy.Service("follow", Empty, follow_callback)
-
-    #iteration loop
-    while not rospy.is_shutdown():
-
-        
-
-
-        #move_group.set_named_target("Home")
-        #move_group.go()
-        #move_group.stop()
-        #move_group.clear_pose_targets()
-        #Log coordinates (received from node arm_traj through topic point)
-
-        #rospy.loginfo("test")
+        current_pose = move_group.get_current_pose().pose
+  
+        rospy.loginfo(waypoints)
 
         #go to sleep!
         hz.sleep()

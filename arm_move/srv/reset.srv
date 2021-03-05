@@ -1,0 +1,6 @@
+geometry_msgs/Vector3 box_position
+geometry_msgs/Quaternion box_orientation
+string Goal_Pose
+bool clear_waypoints
+---
+string response

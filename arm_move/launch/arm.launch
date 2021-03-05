@@ -20,7 +20,13 @@
   <!--<param name="robot_description" command="$(find xacro)/xacro $(arg URDF)" />-->
 
     <!--nodes-->
-  <node name="mover" pkg="arm_move" type="mover" output="screen"/>
+  <node ns="px100" name="mover" pkg="arm_move" type="mover" output="screen">
+      <param name="robot_name" value="px100"/>
+      <param name="dof" value="4"/>
+      <remap from="/attached_collision_object" to="/px100/attached_collision_object"/>
+      <remap from="/collision_object" to="/px100/collision_object"/>
     <!--Pub Freq Parameter included in trajectory.yaml-->
+  </node>
+
   
 </launch>

@@ -1,4 +1,88 @@
 #!/usr/bin/env python
+
+
+import rospy
+import sys
+import copy
+import moveit_commander
+import moveit_msgs.msg
+import geometry_msgs.msg
+from geometry_msgs.msg import Quaternion, Vector3
+from math import pi, dist, fabs, cos
+from std_msgs.msg import String
+from moveit_commander.conversions import pose_to_list
+
+#Define frequency rate
+#freq = rospy.get_param("/F")
+freq = 60
+
+
+#Define Callback for point subscriber
+#def callback(data):
+#    global x_coor, y_coor
+#    x_coor = data.x
+#    y_coor = data.y
+
+
+def main():
+    
+    #initialize moveit_commander
+    moveit_commander.roscpp_initialize(sys.argv)
+
+    #initialize node
+    rospy.init_node('mover')
+
+    #instantiate a RobotCommander object
+    robot = moveit_commander.RobotCommander()
+
+    #instantiate a PlanningSceneInterface object
+    scene = moveit_commander.PlanningSceneInterface()
+
+    group_name = "interbotix_arm"
+    move_group = moveit_commander.MoveGroupCommander(group_name)
+
+    #logerr msg to check if node is running
+    rospy.logerr("This is just a check for arm_marker node, ignore me")
+    
+    #define ros frequency
+    hz = rospy.Rate(freq)
+
+    
+    while not rospy.is_shutdown():
+
+        #add table
+        box_pose = geometry_msgs.msg.PoseStamped()
+        box_pose.header.frame_id = "world"
+        box_pose.pose.position = Vector3(0,0,-0.01)
+        box_pose.pose.orientation = Quaternion(0,0,0,1)
+        box_name = "table"
+        scene.add_box(box_name, box_pose, size=(0.75, 0.75, 0.02))
+
+        #add realsense_box
+        box_pose = geometry_msgs.msg.PoseStamped()
+        box_pose.header.frame_id = "world"
+        box_pose.pose.position = Vector3(0.2,0,0.01)
+        box_pose.pose.orientation = Quaternion(0,0,1,1)
+        box_name = "realsense_box"
+        scene.add_box(box_name, box_pose, size=(0.14, 0.09, 0.05))
+
+
+        #move_group.set_named_target("Home")
+        #move_group.go()
+        #move_group.stop()
+        #move_group.clear_pose_targets()
+        #Log coordinates (received from node arm_traj through topic point)
+
+        #rospy.loginfo("test")
+
+        #go to sleep!
+        hz.sleep()
+
+if __name__ == "__main__":
+    try:
+        main()
+    except rospy.ROSInterruptException:
+        pass 
 """
 
 **Info**: This *mover* node publishes 
@@ -17,45 +101,3 @@
 **Note**:
 
 """
-
-import rospy
-
-
-#Define frequency rate
-#freq = rospy.get_param("/F")
-freq = 60
-
-
-#Define Callback for point subscriber
-#def callback(data):
-#    global x_coor, y_coor
-#    x_coor = data.x
-#    y_coor = data.y
-
-
-def main():
-
-    #initialize node
-    rospy.init_node('mover')
-
-    #logerr msg to check if node is running
-    rospy.logerr("This is just a check for arm_marker node, ignore me")
-
-    #define ros frequency
-    hz = rospy.Rate(freq)
-
-    
-    while not rospy.is_shutdown():
-        
-
-        #Log coordinates (received from node arm_traj through topic point)
-        rospy.loginfo("test")
-
-        #go to sleep!
-        hz.sleep()
-
-if __name__ == "__main__":
-    try:
-        main()
-    except rospy.ROSInterruptException:
-        pass 

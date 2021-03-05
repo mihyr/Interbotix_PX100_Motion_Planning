@@ -8,7 +8,10 @@ project(arm_move)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+    geometry_msgs
+    moveit_commander
     rospy
+    std_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -103,7 +106,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES arm_move
-  CATKIN_DEPENDS rospy
+  CATKIN_DEPENDS geometry_msgs moveit_commander rospy std_msgs
 #  DEPENDS system_lib
 )
 

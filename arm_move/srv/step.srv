@@ -1,6 +1,7 @@
 geometry_msgs/Vector3 goal_position
 geometry_msgs/Quaternion goal_orientation
 string Gripper_state
+bool record
 ---
 string response
 moveit_msgs/MoveItErrorCodes error

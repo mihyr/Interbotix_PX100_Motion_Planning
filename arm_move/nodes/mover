@@ -1,6 +1,24 @@
 #!/usr/bin/env python
+"""
 
+**Info**: This *mover* node publishes 
 
+**Publishers**:
+    visualization_marker - publish marker of different shape and color based on their current location
+                            (shape and color changes when x coordinate sign alters. Color change is set to random)
+
+**Subscriber:
+    point - Subscribe to points topic (x,y coordinate data) published by arm_traj node
+
+**Parameters**:
+    total_time = Time required to complete one loop of trajectory
+    Pub_Frequency - ROS Publishing freq Rate
+    
+**Note**:
+
+"""
+
+from rosparam import dump_params
 import rospy
 import sys
 import copy
@@ -13,16 +31,18 @@ from math import pi, dist, fabs, cos
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
 from std_srvs.srv import Empty, EmptyResponse
-from arm_move.srv import reset, step
+from arm_move.srv import reset, step, follow, stepRequest, stepResponse
 
 #Define frequency rate
-#freq = rospy.get_param("/F")
-freq = 200
-waypoints = []
+freq = rospy.get_param("/Fr")
+x_waypoints = rospy.get_param("/x_waypoints")
+z_waypoints = rospy.get_param("/z_waypoints")
+gripper_state = rospy.get_param("/gripper_state")
+
+#sdump_params('$(find arm_move)/generated_waypoints.yaml', '/px100/waypoints')
 
 def main():
-    
-    
+        
     #initialize moveit_commander
     moveit_commander.roscpp_initialize(sys.argv)
 
@@ -49,7 +69,7 @@ def main():
 
     #Define pause_callback and resume_callback for pause and resume services
     def reset_callback(msg):
-        global waypoints
+        global x_waypoints, z_waypoints, gripper_state
         #add realsense_box
         box_pose = geometry_msgs.msg.PoseStamped()
         box_pose.header.frame_id = "world"
@@ -68,13 +88,15 @@ def main():
 
         #clear waypoints
         if msg.clear_waypoints ==True:
-            waypoints = []
+            x_waypoints = []
+            z_waypoints = []
+            gripper_state = []
             return {'response': "Home Position Set, waypoints cleared"}
         else:
             return {'response': "Home Position Set, waypoints not cleared"}
 
     def step_callback(msg):
-        global waypoints
+        global x_waypoints, z_waypoints, gripper_state
 
         pose_goal = geometry_msgs.msg.Pose()
         pose_goal.position = msg.goal_position
@@ -83,30 +105,50 @@ def main():
         (success_status, trajectory_message, planning_time, error) = move_group.plan()
 
         move_group.execute(trajectory_message, wait=True)
-        move_group.stop()
-        move_group.clear_pose_targets()
         move_group.go()
         move_group.stop()
         move_group.clear_pose_targets()
-        print(error)
-        if success_status == 1:
-            waypoints.append(pose_goal)
+        #print(error)
 
         gripper_group.set_named_target(msg.Gripper_state)
         gripper_group.go()
         gripper_group.stop()
         gripper_group.clear_pose_targets()
 
+        if success_status == 1 and msg.record==True:
+            x_waypoints.append(pose_goal.position.x)
+            z_waypoints.append(pose_goal.position.z)
+            gripper_state.append(msg.Gripper_state)
+            rospy.set_param('x_waypoints', x_waypoints)
+            rospy.set_param('z_waypoints', z_waypoints)
+            rospy.set_param('gripper_state', gripper_state)
+        
+
         return {'response': str(planning_time), 'error':error }
 
     def follow_callback(msg):
-
-        return EmptyResponse()
+        global x_waypoints, z_waypoints, gripper_state
+        rospy.wait_for_service('step')
+        step_service = rospy.ServiceProxy('step', step)
+        for j in range(msg.repeat+1 ):
+            for i in range(len(x_waypoints)):
+                Step_input = stepRequest()
+                Step_input.goal_position = Vector3(x_waypoints[i],0,z_waypoints[i])
+                Step_input.Gripper_state = gripper_state[i]
+                Step_input.goal_orientation = Quaternion(0,0,0,1)
+                Step_input.record = False
+                rospy.logerr(Step_input)
+                step_service(Step_input)
+            
+        if msg.repeat == 0:
+            return {'response': "Completed loop without repeat" }
+        else:
+            return {'response': f"Completed loop with {msg.repeat} repeats" }
 
     #init pause and resume services
     reset_srv = rospy.Service("reset", reset, reset_callback)
     step_srv = rospy.Service("step", step, step_callback)
-    follow_srv = rospy.Service("follow", Empty, follow_callback)
+    follow_srv = rospy.Service("follow", follow, follow_callback)
 
     #iteration loop
     while not rospy.is_shutdown():
@@ -121,7 +163,7 @@ def main():
 
         current_pose = move_group.get_current_pose().pose
   
-        rospy.loginfo(waypoints)
+        rospy.loginfo(x_waypoints)
 
         #go to sleep!
         hz.sleep()
@@ -131,21 +173,3 @@ if __name__ == "__main__":
         main()
     except rospy.ROSInterruptException:
         pass 
-"""
-
-**Info**: This *mover* node publishes 
-
-**Publishers**:
-    visualization_marker - publish marker of different shape and color based on their current location
-                            (shape and color changes when x coordinate sign alters. Color change is set to random)
-
-**Subscriber:
-    point - Subscribe to points topic (x,y coordinate data) published by arm_traj node
-
-**Parameters**:
-    total_time = Time required to complete one loop of trajectory
-    Pub_Frequency - ROS Publishing freq Rate
-    
-**Note**:
-
-"""

@@ -20,8 +20,6 @@ from arm_move.srv import reset, step
 freq = 200
 waypoints = []
 
-
-
 def main():
     
     
@@ -77,7 +75,7 @@ def main():
 
     def step_callback(msg):
         global waypoints
-          
+
         pose_goal = geometry_msgs.msg.Pose()
         pose_goal.position = msg.goal_position
         pose_goal.orientation = msg.goal_orientation

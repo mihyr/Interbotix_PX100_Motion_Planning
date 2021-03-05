@@ -1,31 +1,30 @@
 <launch>
   <!--args-->
-  <!--<arg name="rvizconfig" default="$(find arm_move)/rviz/arm.rviz" />
-  <arg name="rviz" default="False"/>
-  <arg name="URDF" default="$(find homework2)/urdf/turtlebot3_burger.urdf.xacro"/>-->
+  <arg name="rvizconfig" default="$(find arm_move)/rviz/arm.rviz" />
+  <arg name="use_actual" default="false" />
+  <arg name="use_fake" default="false" />
+  <arg name="use_gazebo" default="false" />
 
   <!--include-->
-    <!--robot_model:=px100 use_actual:=true dof:=4-->
   <include file="$(find interbotix_xsarm_moveit)/launch/xsarm_moveit.launch">
-  <!-- all vars that included.launch requires must be set -->
+    <!-- all vars that included.launch requires must be set -->
     <arg name="robot_model" value="px100" />
-    <arg name="use_actual" value="true" />
     <arg name="dof" value="4" />
-    <arg name="use_fake" value="false" />
-    <arg name="use_gazebo" value="false" />
+    <arg name="use_actual" value="$(arg use_actual)" />
+    <arg name="use_fake" value="$(arg use_fake)" />
+    <arg name="use_gazebo" value="$(arg use_gazebo)" />
   </include>
   
-  <!--load Figure 8 constants to ROS Parameter Server for nodes
-  <rosparam command="load" file="$(find homework2)/config/trajectory.yaml" />-->
-  <!--<param name="robot_description" command="$(find xacro)/xacro $(arg URDF)" />-->
+  <!--load waypoints constants to ROS Parameter Server for mover node-->
+  <rosparam command="load" file="$(find arm_move)/config/waypoints.yaml" />
 
-    <!--nodes-->
+  <!--nodes-->
   <node ns="px100" name="mover" pkg="arm_move" type="mover" output="screen">
       <param name="robot_name" value="px100"/>
       <param name="dof" value="4"/>
       <remap from="/attached_collision_object" to="/px100/attached_collision_object"/>
       <remap from="/collision_object" to="/px100/collision_object"/>
-    <!--Pub Freq Parameter included in trajectory.yaml-->
+      <!--Pub Freq Parameter included in waypoints.yaml-->
   </node>
 
   

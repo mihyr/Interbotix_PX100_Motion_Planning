@@ -24,8 +24,8 @@
       <param name="dof" value="4"/>
       <remap from="/attached_collision_object" to="/px100/attached_collision_object"/>
       <remap from="/collision_object" to="/px100/collision_object"/>
-      <!--Pub Freq Parameter included in waypoints.yaml-->
   </node>
+
   <!--tests-->  
   <test test-name="arm_move_test" pkg="arm_move" type="arm_move_test" />
   

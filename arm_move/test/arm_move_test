@@ -3,16 +3,9 @@
 from rosparam import dump_params
 import rospy
 import sys
-import copy
 import moveit_commander
-import moveit_msgs.msg
-import geometry_msgs.msg
-from geometry_msgs.msg import Quaternion, Vector3
+from geometry_msgs.msg import Quaternion, Vector3, PoseStamped, Pose
 from moveit_msgs.msg import MoveItErrorCodes
-from math import pi, dist, fabs, cos
-from std_msgs.msg import String
-from moveit_commander.conversions import pose_to_list
-from std_srvs.srv import Empty, EmptyResponse
 from arm_move.srv import reset, step, follow, stepRequest, stepResponse
 import unittest
 
@@ -25,7 +18,7 @@ class arm_test_class(unittest.TestCase):
         rospy.wait_for_service('step')
         step_service = rospy.ServiceProxy('step', step)
         Step_input = stepRequest()
-        Step_input.goal_position = Vector3(0.1,0,-0.2)
+        Step_input.goal_position = Vector3(0.1,0,-0.4)
         Step_input.Gripper_state = "Closed"
         Step_input.goal_orientation = Quaternion(0,0,0,1)
         Step_input.record = False

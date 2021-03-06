@@ -3,15 +3,19 @@
 
 This package uses MoveIt to control Interbotix PX100 robot arm (in Simulation as well as in real world).
 
-* The Robot begins in a paused state and orients itself in direction of motion, relative to `odom` frame.
-* To start/resume motion, type `rosservice call /resume_turtle`. To pause, type `rosservice call /pause_turtle`
-* The user has an option to run the code on actual Turtlebot3: Burger or in Gazebo. User may visualize the robot in RVIZ optionally in both the cases. Figure-8 trajectory size is configurable.
+* User may use services listed below individually to *reset robot*, execute a *step* or make the robot follow a pre-loaded series of *waypoints*
+* User may use services in combination by:
+    * Resetting robot to a `Goal_Pose` pre-defined position, set-up `box_position` and `box_orientation` of the box obstacle to scene and optionally set `clear_waypoints` to delete previously collected waypoints
+    * Execute step service multiple times with different `goal_position`, `goal_orientation` and `Gripper_state` as input as desired. User may choose to `record` the waypoint. The waypoint will only be recorded to rosparam server if plan _succeeds_ **and** user set `record` to _true_.
+    * Once user collects multiple waypoints using step service, user may use follow service to execute entire sequence and `repeat` if desired. 
+    (Note: `Follow service` calls step service in a loop but doesn't `record` in each iteration)
+* The user has an option to run the code on actual *Interbotix PX100 robot arm* or in Simulation. User may visualize the robot in RVIZ optionally in both the cases.
 
 ## Dependencies
 Title | Link
 ------------ | -------------
-turtlebot3_gazebo| [ROS Wiki](http://wiki.ros.org/turtlebot3_bringup)
-turtlebot3_bringup | [ROS Wiki](http://wiki.ros.org/turtlebot3_bringup)
+MoveIt| [ROS Wiki](http://wiki.ros.org/moveit)
+interbotix_ros_manipulators | [Github](https://github.com/Interbotix/interbotix_ros_manipulators)
 
 
 ## Installation Instructions
@@ -36,6 +40,7 @@ turtlebot3_bringup | [ROS Wiki](http://wiki.ros.org/turtlebot3_bringup)
     ```
     roslaunch arm_move arm.launch actual:=true
     ```
+    * This command also launches RVIZ to visualize actual robot in action.
     * Note: By default, all `args` in ` roslaunch arm_move arm.launch` are set to `False`. Set **only one** `arg` to `True`. *Check below for all configurations options availabe*.
     
     * The waypoints are pre-loaded to `rosparam` server. To make the robot follow these series of waypoints use service below

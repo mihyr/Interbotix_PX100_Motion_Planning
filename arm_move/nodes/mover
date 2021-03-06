@@ -1,45 +1,52 @@
 #!/usr/bin/env python
 """
 
-**Info**: This *mover* node publishes 
+**Info**: This *mover* node provides services to control interbotix pincher x100 arm step-by-step or in a sequence along with an option to reset it
 
-**Publishers**:
-    visualization_marker - publish marker of different shape and color based on their current location
-                            (shape and color changes when x coordinate sign alters. Color change is set to random)
+**Services**:
+    Reset: Takes Position and Quaternion orientation input for Intel Realsense box and creates a virtual box in RViz
+            Provides an option to reset px100 to predefined pose (Home, Sleep, Upright Note: Input is CaseSensitive)
+            Provides an option to Clear waypoints from ROS Param (if collected using Step service)
+            Gives outcome of requested service as string response 
 
-**Subscriber:
-    point - Subscribe to points topic (x,y coordinate data) published by arm_traj node
+    Step: Takes Position and Quaternion orientation input for Goal Pose of px100 arm
+           Takes string input to assign gripper state (Open, Closed, Home) for corresponding Goal pose 
+           Provides boolean option to record this waypoint or not
+           Gives outcome of requested service as string response 
+           Gives MoveItErrorCodes error response based on Goal Pose input
+           (Note: Waypoint will not be recorded if planning fails, even if record bool input is requested)
+
+    Follow: Makes px100 to follow a series of waypoints loaded on rosparameter server (either through Step Service or loaded from launch file)
+            Uses Step service in each cycle to execute given waypoint (but doesn't record any waypoints)
+            Provides an option to repeat the cycle (series of waypoints) for user defined number of times 
+            (Note: This service takes integer as input, 0 input would mean no repeat i.e. series of waypoints are executed once)
+
 
 **Parameters**:
-    total_time = Time required to complete one loop of trajectory
-    Pub_Frequency - ROS Publishing freq Rate
+    x_waypoints, z_waypoints, gripper_state: x, z, gripper state parameters which determine the trajectory sequence for px100 arm
+    freq: ROS freq Rate
     
-**Note**:
+**Note**: -
 
 """
 
 from rosparam import dump_params
 import rospy
 import sys
-import copy
 import moveit_commander
-import moveit_msgs.msg
-import geometry_msgs.msg
-from geometry_msgs.msg import Quaternion, Vector3
+from geometry_msgs.msg import Quaternion, Vector3, PoseStamped, Pose
 from moveit_msgs.msg import MoveItErrorCodes
-from math import pi, dist, fabs, cos
-from std_msgs.msg import String
-from moveit_commander.conversions import pose_to_list
-from std_srvs.srv import Empty, EmptyResponse
 from arm_move.srv import reset, step, follow, stepRequest, stepResponse
 
-#Define frequency rate
-freq = rospy.get_param("/Fr")
+#Import params from waypoints.yaml
+
+freq = rospy.get_param("/Fr") #Define frequency rate
 x_waypoints = rospy.get_param("/x_waypoints")
 z_waypoints = rospy.get_param("/z_waypoints")
 gripper_state = rospy.get_param("/gripper_state")
 
-#sdump_params('$(find arm_move)/generated_waypoints.yaml', '/px100/waypoints')
+#dump params to seperate yaml file in ~/.ros folder
+#dump_params('generated_waypoints.yaml', '/px100/x_waypoints')
 
 def main():
         
@@ -55,9 +62,10 @@ def main():
     #instantiate a PlanningSceneInterface object
     scene = moveit_commander.PlanningSceneInterface()
 
-    group_name = "interbotix_arm"
+    #set group names (there are two predefined groups for interbotix px100 arm)
+    group_name = "interbotix_arm" #controls main arm
     move_group = moveit_commander.MoveGroupCommander(group_name)
-    gripper_name = "interbotix_gripper"
+    gripper_name = "interbotix_gripper" #controls gripper
     gripper_group = moveit_commander.MoveGroupCommander(gripper_name)
 
     #logerr msg to check if node is running
@@ -67,70 +75,126 @@ def main():
     hz = rospy.Rate(freq)
 
 
-    #Define pause_callback and resume_callback for pause and resume services
+    #Define reset_callback service
     def reset_callback(msg):
+        """ Callback function for reset service
+        args: 
+            box_position (geometry_msgs/Vector3): x,y,z coordinate input for realsense_box
+            box_orientation (geometry_msgs/Quaternion): orientation input for realsense_box
+            Goal_Pose (string): string input to move robot to pre-defined target position (options: Home, Sleep, Upright | Note: Input is CaseSensitive)
+            clear_waypoints (bool): if input is True, it resets/clears recorded waypoints locally as well as in rosparam
+
+        return: 
+            response (string): response for reference based on user input
+        """
+
         global x_waypoints, z_waypoints, gripper_state
+
         #add realsense_box
-        box_pose = geometry_msgs.msg.PoseStamped()
+        box_pose = PoseStamped()
         box_pose.header.frame_id = "world"
         #box_pose.pose.position = Vector3(0.2,0,0.01)
         #box_pose.pose.orientation = Quaternion(0,0,1,1)
+        #Get Position and quaternion orientation for box from reset service
         box_pose.pose.position = msg.box_position
         box_pose.pose.orientation = msg.box_orientation
         box_name = "realsense_box"
         scene.add_box(box_name, box_pose, size=(0.14, 0.09, 0.05))
 
-        #move robot to pre-defined "Home" position
+        #move robot to pre-defined target position (options: Home, Sleep, Upright | Note: Input is CaseSensitive)
         move_group.set_named_target(msg.Goal_Pose)
         move_group.go()
         move_group.stop()
+        #clear target position
         move_group.clear_pose_targets()
 
-        #clear waypoints
+        #clear waypoints (locally and rosparam), if bool input clear_waypoints is set True
         if msg.clear_waypoints ==True:
+            #clear local array
             x_waypoints = []
             z_waypoints = []
             gripper_state = []
+            #delete rosparam
+            rospy.delete_param('x_waypoints')
+            rospy.delete_param('z_waypoints')
+            rospy.delete_param('gripper_state')
+            #params will be loaded again from waypoints.yaml when launched again
             return {'response': "Home Position Set, waypoints cleared"}
         else:
             return {'response': "Home Position Set, waypoints not cleared"}
 
+    #Define step_callback service
     def step_callback(msg):
-        global x_waypoints, z_waypoints, gripper_state
+        """ Callback function for step service
+        args: 
+            goal_position (geometry_msgs/Vector3): x,y,z coordinate input for px100 arm goal_pose
+            goal_orientation (geometry_msgs/Quaternion): orientation input for px100 arm goal_pose
+            Gripper_state (string): string input to move gripper to pre-defined target position (options: Closed, Open, Home | Note: Input is CaseSensitive)
+            record (bool): if input is True, input waypoints will be recorded (only if planning succeeds), else will be discarded (even if planning succeeds)
 
-        pose_goal = geometry_msgs.msg.Pose()
+        return: 
+            response (string): response for reference based on user input
+            error (moveit_msgs/MoveItErrorCodes): gives moveit errors for reference
+        """
+
+        global x_waypoints, z_waypoints, gripper_state
+        
+        #instantiate pose message
+        pose_goal = Pose()
+        #Get Position and quaternion orientation for arm from step service
         pose_goal.position = msg.goal_position
         pose_goal.orientation = msg.goal_orientation
         move_group.set_pose_target(pose_goal)
-        (success_status, trajectory_message, planning_time, error) = move_group.plan()
 
+        #plan and execute
+        (success_status, trajectory_message, planning_time, error) = move_group.plan()
         move_group.execute(trajectory_message, wait=True)
         move_group.go()
+
+        #stop and clear the target
         move_group.stop()
         move_group.clear_pose_targets()
         #print(error)
 
+        #move gripper to pre-defined target position (options: Closed, Open, Home | Note: Input is CaseSensitive)
         gripper_group.set_named_target(msg.Gripper_state)
         gripper_group.go()
+        #Stop and clear the target
         gripper_group.stop()
         gripper_group.clear_pose_targets()
 
+        #Append the waypoints only if planning for move_group (arm group) succeeds, as well as user sets option to record it
         if success_status == 1 and msg.record==True:
+            #append to local array
             x_waypoints.append(pose_goal.position.x)
             z_waypoints.append(pose_goal.position.z)
             gripper_state.append(msg.Gripper_state)
+            #upload params to rosparam server
             rospy.set_param('x_waypoints', x_waypoints)
             rospy.set_param('z_waypoints', z_waypoints)
             rospy.set_param('gripper_state', gripper_state)
-        
 
+        #returns planning time and errors (if any!)
         return {'response': str(planning_time), 'error':error }
 
+    #Define follow_callback service
     def follow_callback(msg):
+        """ Callback function for follow service
+        args: 
+            repeat (int64): takes interger input for repeating the loop (following a series of waypoints in each loop) for given number times
+                            for input 0, loop executes once (i.e. repeats 0 times)
+        return: 
+            response (string): response for reference based on user input
+        """
         global x_waypoints, z_waypoints, gripper_state
+
+        #wait until step service is available
         rospy.wait_for_service('step')
         step_service = rospy.ServiceProxy('step', step)
+
+        #for loop for number of times the execution to repeat, for input=0, loop executes once
         for j in range(msg.repeat+1 ):
+            #for loop for iterating among elements in waypoints array
             for i in range(len(x_waypoints)):
                 Step_input = stepRequest()
                 Step_input.goal_position = Vector3(x_waypoints[i],0,z_waypoints[i])
@@ -139,13 +203,14 @@ def main():
                 Step_input.record = False
                 rospy.logerr(Step_input)
                 step_service(Step_input)
-            
+        
+        #response based on input 
         if msg.repeat == 0:
             return {'response': "Completed loop without repeat" }
         else:
             return {'response': f"Completed loop with {msg.repeat} repeats" }
 
-    #init pause and resume services
+    #init reset, step and follow services
     reset_srv = rospy.Service("reset", reset, reset_callback)
     step_srv = rospy.Service("step", step, step_callback)
     follow_srv = rospy.Service("follow", follow, follow_callback)
@@ -153,17 +218,19 @@ def main():
     #iteration loop
     while not rospy.is_shutdown():
 
-        #add table
-        box_pose = geometry_msgs.msg.PoseStamped()
+        #add table to RViz (predefined pose and size)
+        box_pose = PoseStamped()
         box_pose.header.frame_id = "world"
         box_pose.pose.position = Vector3(0,0,-0.01)
         box_pose.pose.orientation = Quaternion(0,0,0,1)
         box_name = "table"
         scene.add_box(box_name, box_pose, size=(0.75, 0.75, 0.02))
 
+        #get current pose of robot
         current_pose = move_group.get_current_pose().pose
-  
-        rospy.loginfo(x_waypoints)
+
+        #print current pose of px100 arm
+        rospy.loginfo(current_pose)
 
         #go to sleep!
         hz.sleep()

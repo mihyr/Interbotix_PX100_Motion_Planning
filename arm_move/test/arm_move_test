@@ -1,12 +1,19 @@
 #!/usr/bin/env python
 
+from rosparam import dump_params
+import rospy
 import sys
 import copy
-import rospy
-import arm_move
-from arm_move.srv import step, stepRequest
+import moveit_commander
+import moveit_msgs.msg
+import geometry_msgs.msg
+from geometry_msgs.msg import Quaternion, Vector3
+from moveit_msgs.msg import MoveItErrorCodes
+from math import pi, dist, fabs, cos
+from std_msgs.msg import String
+from moveit_commander.conversions import pose_to_list
 from std_srvs.srv import Empty, EmptyResponse
-from geometry_msgs.msg import Pose
+from arm_move.srv import reset, step, follow, stepRequest, stepResponse
 import unittest
 
 class arm_test_class(unittest.TestCase):

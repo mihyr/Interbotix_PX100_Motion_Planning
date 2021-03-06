@@ -2,7 +2,7 @@
   <!--args-->
   <arg name="rvizconfig" default="$(find arm_move)/rviz/arm.rviz" />
   <arg name="use_actual" default="false" />
-  <arg name="use_fake" default="false" />
+  <arg name="use_fake" default="true" />
   <arg name="use_gazebo" default="false" />
 
   <!--include-->
@@ -26,7 +26,7 @@
       <remap from="/collision_object" to="/px100/collision_object"/>
       <!--Pub Freq Parameter included in waypoints.yaml-->
   </node>
-
+  <!--tests-->  
   <test test-name="arm_move_test" pkg="arm_move" type="arm_move_test" />
   
 </launch>

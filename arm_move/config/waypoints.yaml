@@ -1,2 +1,5 @@
 #Note: This parameters are meant for mover node
 Fr  : 80   #frequency
+x_waypoints : [0.1, 0.2, 0.25, 0.25, 0.1, 0.1, 0.1, 0.1, 0.1]
+z_waypoints : [0.2, 0.2, 0.1, 0.08, 0.2, 0.09, 0.1, 0.15, 0.25]
+gripper_state : ['Closed', 'Closed', 'Closed', 'Open', 'Open', 'Closed', 'Closed', 'Closed', 'Closed']

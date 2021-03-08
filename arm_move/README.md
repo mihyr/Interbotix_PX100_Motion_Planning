@@ -56,6 +56,10 @@ interbotix_ros_manipulators | [Github](https://github.com/Interbotix/interbotix_
     ```
 * Services:
     * __*Reset*__
+        - `box_position` and `box_orientation` sets box at desired pose in planning scene. 
+        - `clear_waypoints` clears collected waypoints from node's array as well as from rosparam
+        - `Goal_Pose` resets robot to predefined position. 
+            options: `Home`, `Sleep`, `Upright` (CaseSensitive)
     ```
     rosservice call /px100/reset "box_position:                                                          
         x: 0.2
@@ -69,7 +73,13 @@ interbotix_ros_manipulators | [Github](https://github.com/Interbotix/interbotix_
         Goal_Pose: 'Home'
         clear_waypoints: true"
     ```
+    
     * __*Step*__
+        - `goal_position` and `goal_orientation` sets arm's goal pose
+        - `Gripper_state` sets end-effector's desired state
+            options: `Open`, `Closed`, `Home` (CaseSensitive)
+        - `record` option to record the goal pose to rosparam
+            [note: The waypoint will only be recorded to rosparam server if plan _succeeds_ **and** user set `record` to _true_.]
     ```
     rosservice call /px100/step "goal_position:                                                              
         x: 0.2
@@ -84,6 +94,8 @@ interbotix_ros_manipulators | [Github](https://github.com/Interbotix/interbotix_
         record: true"        
     ```
     * __*Follow*__
+        - `repeat` takes interger input for repeating the loop (following a series of waypoints in each loop) for user defined number times. 
+            [eg: For input 0, loop executes once (i.e. repeats 0 times)]
     ```
     rosservice call /px100/follow "repeat: 2"  
     ```

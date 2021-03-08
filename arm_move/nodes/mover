@@ -93,7 +93,7 @@ def main():
         #add realsense_box
         box_pose = PoseStamped()
         box_pose.header.frame_id = "world"
-        #box_pose.pose.position = Vector3(0.2,0,0.01)
+        #box_pose.pose.position = Vector3(0.15,0,0.025)
         #box_pose.pose.orientation = Quaternion(0,0,1,1)
         #Get Position and quaternion orientation for box from reset service
         box_pose.pose.position = msg.box_position

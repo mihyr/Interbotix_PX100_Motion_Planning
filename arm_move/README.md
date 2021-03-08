@@ -99,12 +99,7 @@ interbotix_ros_manipulators | [Github](https://github.com/Interbotix/interbotix_
 
     Set only one of the above mentioned `args` to to `True` in launch file.
     
-* Demo: Click on the image below to view video: *Turtlebot3 Following Figure-8 Trajectory: Visualization in GAZEBO*
+* Demo: Click on the image below to view video: *Interbotix px100: Motion Planning using MoveIt!*
 
-    [![Watch the video](https://img.youtube.com/vi/h6xmesHbBHA/maxresdefault.jpg )](https://youtu.be/h6xmesHbBHA)
-
-* Demo: Click on the image below to view video: *Turtlebot3 Following Figure-8 Trajectory: Visualization in RVIZ*
-
-    [![Watch the video](https://img.youtube.com/vi/DA9sDGc_mRw/maxresdefault.jpg )](https://youtu.be/DA9sDGc_mRw)
-
+    [![Watch the video](https://img.youtube.com/vi/nNYra6mV9_4/maxresdefault.jpg )](https://youtu.be/nNYra6mV9_4)
 ---

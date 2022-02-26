@@ -1,4 +1,7 @@
 # Interbotix PX100 Motion Planning using MoveIt
+<p align="center">
+<img src="https://media.giphy.com/media/wlmk1Lfrofmc4Kuf9N/giphy-downsized-large.gif" alt="Interbotix PX100 Motion Planning using MoveIt">
+</p>
 ## Overview
 
 This package uses MoveIt to control Interbotix PX100 robot arm (in Simulation as well as in real world).

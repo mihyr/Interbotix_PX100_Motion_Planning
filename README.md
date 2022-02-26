@@ -1,6 +1,6 @@
 # Interbotix PX100 Motion Planning using MoveIt
 <p align="center">
-<img src="https://media.giphy.com/media/wlmk1Lfrofmc4Kuf9N/giphy-downsized-large.gif" alt="Interbotix PX100 Motion Planning using MoveIt">
+<a href="https://youtu.be/nNYra6mV9_4"><img src="https://media.giphy.com/media/wlmk1Lfrofmc4Kuf9N/giphy-downsized-large.gif" alt="Interbotix PX100 Motion Planning using MoveIt">
 </p>
 
 ## Overview
